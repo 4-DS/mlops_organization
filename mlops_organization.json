@@ -1,0 +1,24 @@
+{
+    "name": "public",
+    "cli_bodies": [
+        {
+            "boundary_name": "public",
+            "boundary_guid": "",
+            "sinara_lib": "",
+            "step_template": "",
+            "platform_names": ["desktop", "remote"],
+            "platform_images": {
+                "cv": "",
+                "ml": ""
+            },
+            "parts": {
+                "server": {
+
+                },
+                "model": {
+                
+                }
+            }
+        }
+    ]
+}
