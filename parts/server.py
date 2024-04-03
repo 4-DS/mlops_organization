@@ -289,14 +289,14 @@ class SinaraServer():
                 "DSML_USER": "jovyan",
                 "JUPYTER_ALLOW_INSECURE_WRITES": "true",
                 "JUPYTER_RUNTIME_DIR": "/tmp",
-                "INFRA_NAME": str(args.infraName),
+                #"INFRA_NAME": str(args.infraName),
                 "JUPYTER_IMAGE_SPEC": sinara_image_versioned,
                 "SINARA_SERVER_MEMORY_LIMIT": args.memLimit,
                 "SINARA_SERVER_CORES": int(args.cpuLimit)
             },
             "labels": {
                 "sinaraml.platform": str(args.platform),
-                "sinaraml.infra": str(args.infraName),
+                #"sinaraml.infra": str(args.infraName),
                 "sinaraml.config.path": str(cm.server_config),
                 "sinaraml.project": str(args.project),
                 "sinaraml.cli.version": str(get_cli_version())
