@@ -160,3 +160,4 @@ cython_debug/
 .vscode
 
 **/*/_version.py
+org_meta.json
