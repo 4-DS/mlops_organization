@@ -45,8 +45,8 @@ class SinaraServer():
 
     @staticmethod
     def add_command_handlers(root_parser, subject_parser):
-        SinaraServer.root_parser = root_parser
-        SinaraServer.subject_parser = subject_parser
+        #SinaraServer.root_parser = root_parser
+        #SinaraServer.subject_parser = subject_parser
         parser_server = subject_parser.add_parser(SinaraServer.subject, help='sinara server subject')
         server_subparsers = parser_server.add_subparsers(title='action', dest='action', help='Action to do with subject')
 
