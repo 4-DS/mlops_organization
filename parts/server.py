@@ -72,6 +72,7 @@ class SinaraServer():
         SinaraServer.create_parser.add_argument('--jovyanTmpPath', type=str, help='Path to tmp folder on host (only used in basic mode)')
         #SinaraServer.create_parser.add_argument('--infraName', default=SinaraInfra.LocalFileSystem, choices=SinaraServer.get_available_infra_names(), type=str, help='Infrastructure name to use (default: %(default)s)')
         SinaraServer.create_parser.add_argument('--insecure', action='store_true', help='Run server without password protection')
+        SinaraServer.create_parser.add_argument('--platform', default="desktop", type=str, help='Server platform - get all available platforms with "sinara cli list"')
         #SinaraServer.create_parser.add_argument('--platform', default=SinaraPlatform.Desktop, choices=list(SinaraPlatform), type=SinaraPlatform, help='Server platform - host where the server is run')
         SinaraServer.create_parser.add_argument('--experimental', action='store_true', help='Use expermiental server images')
         SinaraServer.create_parser.add_argument('--image', type=str, help='Custom server image name')
@@ -202,27 +203,6 @@ class SinaraServer():
 
     @staticmethod
     def create(args):
-
-        SinaraServer._create(args)
-
-        # infras = SinaraServer.get_available_infras()
-        # current_infra = str(args.infraName)
-        
-        # if current_infra not in infras.keys():
-        #     raise Exception(f'Infra "{current_infra}" is not supported, available: {", ".join(infras.keys())}')
-
-        # current_plugin = infras[current_infra][-1]
-        # if current_plugin == "self":
-        #     SinaraServer._create(args)
-        # else:
-        #     infra_plugin = SinaraPluginLoader.get_infra_plugin(current_plugin)
-        #     infra_plugin.add_create_arguments(SinaraServer.create_parser)
-        #     extended_args = SinaraServer.root_parser.parse_args()
-        #     infra_plugin.create_server(extended_args)
-        
-    @staticmethod
-    def _create(args):
-
         if args.fromConfig:
             print(f"Using config {args.fromConfig} to create the sinara server")
             with open(args.fromConfig, "r") as cfg:
@@ -274,6 +254,9 @@ class SinaraServer():
             server_cmd = f"{server_cmd} --NotebookApp.token='' --NotebookApp.password=''"
 
         cm = SinaraServerConfigManager(args.instanceName)
+
+        print(args.platform)
+        exit(1)
 
         server_params = {
             "image": sinara_image,
@@ -420,7 +403,8 @@ class SinaraServer():
     def get_server_platform(instance):
         labels = docker_get_container_labels(instance)
         # Fallback to desktop platform for legacy servers without labels
-        if not "sinaraml.platform" in labels:
+        print 
+        if not "sinaraml.platform" in labels or not labels["sinaraml.platform"]:
             return SinaraPlatform.Desktop
         return SinaraPlatform(labels["sinaraml.platform"])
     
