@@ -217,7 +217,7 @@ class SinaraServer():
         if docker_container_exists(args.instanceName):
             print(f"Sinara server {args.instanceName} aleady exists, remove it and run create again")
             return
-        
+
         if not args.project:
             sinara_image_num = -1
             while sinara_image_num not in [0, 1]:
@@ -256,7 +256,6 @@ class SinaraServer():
         cm = SinaraServerConfigManager(args.instanceName)
 
         print(args.platform)
-        exit(1)
 
         server_params = {
             "image": sinara_image,
@@ -272,7 +271,7 @@ class SinaraServer():
                 "DSML_USER": "jovyan",
                 "JUPYTER_ALLOW_INSECURE_WRITES": "true",
                 "JUPYTER_RUNTIME_DIR": "/tmp",
-                #"INFRA_NAME": str(args.infraName),
+                "INFRA_NAME": "local_filesystem",
                 "JUPYTER_IMAGE_SPEC": sinara_image_versioned,
                 "SINARA_SERVER_MEMORY_LIMIT": args.memLimit,
                 "SINARA_SERVER_CORES": int(args.cpuLimit)
