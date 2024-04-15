@@ -9,6 +9,8 @@ from pathlib import Path
 import shutil
 import logging
 from multiprocessing import cpu_count
+import math
+import platform
 
 class fc:
     HEADER = '\033[95m'
@@ -143,3 +145,35 @@ def get_cli_version():
     except Exception as e:
         logging.info(e)
     return 'unknown'
+
+def convert_size(size_bytes):
+   if size_bytes == 0:
+       return "0B"
+   size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+   i = int(math.floor(math.log(size_bytes, 1024)))
+   p = math.pow(1024, i)
+   s = round(size_bytes / p, 2)
+   return "%s %s" % (s, size_name[i])
+
+def platform_is_wsl():
+    platform_release = platform.uname().release
+    if platform_release.endswith("-Microsoft") or platform_release.endswith("microsoft-standard-WSL2"):
+        return True
+    return False
+
+def get_folder_size(root):
+    def _get_sizes(folder):
+        for path, dirs, files in os.walk(folder):
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            for file in files:
+                full_path = os.path.join(path, file)
+                try:
+                    yield (os.path.getsize(full_path), full_path)
+                except Exception:
+                    pass
+                
+    total_size = 0
+    for (size, name) in _get_sizes(root):
+        total_size += size
+    
+    return total_size
