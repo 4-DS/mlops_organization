@@ -225,6 +225,10 @@ def docker_get_container_mounts(container_name):
     container = client.containers.get(container_name)
     return client.api.inspect_container(container.id)['Mounts']
 
-def docker_list_containers(label_key):
+def docker_list_containers(label_key, sparse_output=True):
     client = docker.from_env()
-    return client.containers.list(all=True, ignore_removed=True, sparse=True, filters={"label": label_key})
+    return client.containers.list(all=True, ignore_removed=True, sparse=sparse_output, filters={"label": label_key})
+
+def docker_list_volumes():
+    client = docker.from_env()
+    return client.df()["Volumes"]
