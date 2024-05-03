@@ -355,12 +355,23 @@ class SinaraServer():
         return  [f"{jovyan_data_path}:/data",
                  f"{jovyan_work_path}:/home/jovyan/work",
                  f"{jovyan_tmp_path}:/tmp"]
+        
+    @staticmethod
+    def get_notebook_user(instance):
+        exit_code, output = docker_container_exec(instance, "printenv NB_USER")
+        stdout, stderr = output
+        if stdout:
+           return stdout.decode('utf-8').split('\n')[0]
+        return None
 
     @staticmethod
     def prepare_mounted_folders(instance):
-        docker_container_exec(instance, "chown -R jovyan:users /tmp")
-        docker_container_exec(instance, "chown -R jovyan:users /data")
-        docker_container_exec(instance, "chown -R jovyan:users /home/jovyan/work")
+        notebook_user = SinaraServer.get_notebook_user(instance)
+        docker_container_exec(instance, f"chown -R {notebook_user}:users /tmp")
+        docker_container_exec(instance, f"chown -R {notebook_user}:users /data")
+        docker_container_exec(instance, f"chown {notebook_user}:users /home/$NB_USER")
+        docker_container_exec(instance, f"chmod 777 /home/{notebook_user}")
+        docker_container_exec(instance, f"chmod 777 /home/{notebook_user}/work")
         docker_container_exec(instance, "rm -rf /tmp/*")
 
     @staticmethod
