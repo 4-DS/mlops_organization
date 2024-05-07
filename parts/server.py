@@ -7,6 +7,7 @@ import time
 import datetime
 import json
 import subprocess
+from pathlib import Path
 from .docker_utils import ensure_docker_volume, \
                           docker_volume_remove, \
                           docker_container_create, \
@@ -256,6 +257,10 @@ class SinaraServer():
         cm = SinaraServerConfigManager(args.instanceName)
 
         print(args.platform)
+        org_json_path = Path(Path(__file__).parent.parent, "mlops_organization.json")
+        with open(org_json_path) as f:
+            org_json = json.load(f)
+        #print(org_json)
 
         server_params = {
             "image": sinara_image,
@@ -274,7 +279,9 @@ class SinaraServer():
                 "INFRA_NAME": "local_filesystem",
                 "JUPYTER_IMAGE_SPEC": sinara_image_versioned,
                 "SINARA_SERVER_MEMORY_LIMIT": args.memLimit,
-                "SINARA_SERVER_CORES": int(args.cpuLimit)
+                "SINARA_SERVER_CORES": int(args.cpuLimit),
+                "SINARA_ORG": org_json,
+                "SINARA_PLATFORM": str(args.platform)
             },
             "labels": {
                 "sinaraml.platform": str(args.platform),

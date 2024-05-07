@@ -1,24 +1,23 @@
 {
-    "name": "public",
-    "cli_bodies": [
-        {
-            "boundary_name": "public",
-            "boundary_guid": "",
-            "sinara_lib": "",
-            "step_template": "",
-            "platform_names": ["desktop", "remote"],
-            "platform_images": {
-                "cv": "",
-                "ml": ""
-            },
-            "parts": {
-                "server": {
+    "name": "personal",
+    "cli_bodies": [{
+        "boundary_name": "public",
+        "boundary_guid": "",
+        "sinara_lib": "",
+        "step_template": "",
+        "mlops_jupyter_organization": "https://github.com/4-DS/mlops_jupyter_organization.git",
+        "platform_names": ["desktop", "remote"],
+        "platform_images": {
+            "cv": "",
+            "ml": ""
+        },
+        "parts": {
+            "server": {
 
-                },
-                "model": {
-                
-                }
+            },
+            "model": {
+            
             }
         }
-    ]
+    }]
 }
