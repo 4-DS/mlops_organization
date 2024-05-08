@@ -6,6 +6,9 @@
         "sinara_lib": "https://github.com/4-DS/sinara.git",
         "step_template": "https://github.com/4-DS/pipeline-step_template.git",
         "mlops_jupyter_organization": "https://github.com/4-DS/mlops_jupyter_organization.git",
+        "git_provider": "GitHub",
+        "git_api": "https://api.github.com",
+        "git_url": "https://github.com",
         "platform_names": ["desktop", "remote"],
         "platform_images": {
             "ml": "buslovaev/sinara-notebook",
