@@ -2,14 +2,16 @@
     "name": "personal",
     "cli_bodies": [{
         "boundary_name": "public",
-        "boundary_guid": "",
-        "sinara_lib": "",
-        "step_template": "",
+        "boundary_guid": "a57e1131-f192-4ab4-8f9f-3e91b5956d1c",
+        "sinara_lib": "https://github.com/4-DS/sinara.git",
+        "step_template": "https://github.com/4-DS/pipeline-step_template.git",
         "mlops_jupyter_organization": "https://github.com/4-DS/mlops_jupyter_organization.git",
         "platform_names": ["desktop", "remote"],
         "platform_images": {
-            "cv": "",
-            "ml": ""
+            "ml": "buslovaev/sinara-notebook",
+            "cv": "buslovaev/sinara-cv",
+            "ml-exp": "buslovaev/sinara-notebook-exp",
+            "cv-exp": "buslovaev/sinara-cv-exp"
         },
         "parts": {
             "server": {
