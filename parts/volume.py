@@ -205,7 +205,7 @@ class SinaraVolume:
             raise VolumeIsHostFolderException("Removing of host folder sinara volumes is not supported")
         
         if docker_volume_exists(args.volume):
-             docker_volume_remove(args.volume)
+            docker_volume_remove(args.volume)
         else:
             raise VolumeNotFoundException(f"Volume '{args.volume}' not found")
         
