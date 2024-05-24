@@ -427,8 +427,6 @@ class SinaraServer():
     
     @staticmethod
     def get_server_ip(platform):
-        if platform == SinaraPlatform.Desktop:
-            return "127.0.0.1"
         public_ip = get_public_ip()
         if not public_ip:
             return "{{vm_public_ip}}"
@@ -471,10 +469,9 @@ class SinaraServer():
         server_ip = SinaraServer.get_server_ip(platform)
         server_url = f"{protocol}://{server_ip}:{host_port}/{token_str}"
 
-        if not platform == SinaraPlatform.Desktop:
-            return f"{protocol}://{server_ip}:{host_port}/{token_str}"
-        else:
-            return server_url
+        return [
+            f"{protocol}://127.0.0.1:{host_port}/{token_str}",
+            f"{protocol}://{server_ip}:{host_port}/{token_str}"]
 
     @staticmethod
     def start(args):
@@ -489,12 +486,11 @@ class SinaraServer():
         
         platform = SinaraServer.get_server_platform(args.instanceName)
         server_clickable_url = SinaraServer.get_server_clickable_url(args.instanceName)
-
-        if not platform == SinaraPlatform.Desktop:
-            server_hint = f"Detected server url {server_clickable_url}\nIf server is not accessible, find your public VM IP address manually"
-        else:
-            server_hint = f"Go to {server_clickable_url} to open jupyterlab"
-
+        server_clickable_url = '\n'.join(server_clickable_url)
+        server_hint = f"""To access the server, copy and paste one of these URLs in a browser:\n{server_clickable_url}
+            If server is not accessible, find your's machine public IP address manually
+            """
+        
         print(f"Sinara server {args.instanceName} started, platform: {platform}\n{server_hint}")
 
     @staticmethod
