@@ -63,7 +63,7 @@ class SinaraServer():
         SinaraServer.create_parser = server_cmd_parser.add_parser('create', help='create sinara server')
         SinaraServer.create_parser.add_argument('--instanceName', default=SinaraServer.container_name, type=str, help='sinara server container name (default: %(default)s)')
         SinaraServer.create_parser.add_argument('--runMode', default='q', choices=["q", "b"], help='Runmode, quick (q) - work, data, tmp will be mounted inside docker volumes, basic (b) - work, data, tmp will be mounted from host folders (default: %(default)s)')
-        SinaraServer.create_parser.add_argument('--createFolders', action='store_true', help='create work, data, tmp folders in basic mode automatically if not exists, or else folders must be created manually (default: %(default)s)')
+        SinaraServer.create_parser.add_argument('--createFolders', action='store_false', help='create work, data, tmp folders in basic mode automatically if not exists, or else folders must be created manually (default: %(default)s)')
         SinaraServer.create_parser.add_argument('--gpuEnabled', choices=["y", "n"], help='y - Enables docker container to use Nvidia GPU, n - disable GPU')
         SinaraServer.create_parser.add_argument('--memLimit', default=str(SinaraServer.get_memory_size_limit()), type=str, help='Maximum amount of memory for server container (default: %(default)s)')
         SinaraServer.create_parser.add_argument('--cpuLimit', default=SinaraServer.get_cpu_cores_limit(), type=int, help='Number of CPU cores to use for server container (default: %(default)s)')
