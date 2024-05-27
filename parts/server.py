@@ -221,9 +221,9 @@ class SinaraServer():
             print(f"Sinara server {args.instanceName} aleady exists, remove it and run create again")
             return
 
-        if args.project:
+        if args.serverType is None and not args.project is None: # for backward compatibility
             args.serverType = args.project
-        if not args.serverType:
+        if args.serverType is None:
             sinara_image_num = -1
             while sinara_image_num not in [0, 1]:
                 try:
