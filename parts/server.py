@@ -73,7 +73,7 @@ class SinaraServer():
         SinaraServer.create_parser.add_argument('--jovyanTmpPath', type=str, help='Path to tmp folder on host (only used in basic mode)')
         #SinaraServer.create_parser.add_argument('--infraName', default=SinaraInfra.LocalFileSystem, choices=SinaraServer.get_available_infra_names(), type=str, help='Infrastructure name to use (default: %(default)s)')
         SinaraServer.create_parser.add_argument('--insecure', action='store_true', help='Run server without password protection')
-        SinaraServer.create_parser.add_argument('--platform', default="desktop", type=str, help='Server platform - get all available platforms with "sinara cli list"')
+        SinaraServer.create_parser.add_argument('--platform', default="desktop", type=str, help='Server platform - get all available platforms with "sinara org list"')
         #SinaraServer.create_parser.add_argument('--platform', default=SinaraPlatform.Desktop, choices=list(SinaraPlatform), type=SinaraPlatform, help='Server platform - host where the server is run')
         SinaraServer.create_parser.add_argument('--experimental', action='store_true', help='Use expermiental server images')
         SinaraServer.create_parser.add_argument('--image', type=str, help='Custom server image name')
@@ -303,14 +303,17 @@ class SinaraServer():
         data_volume = f"jovyan-data-{args.instanceName}"
         work_volume = f"jovyan-work-{args.instanceName}"
         tmp_volume =  f"jovyan-tmp-{args.instanceName}"
+        raw_volume =  f"jovyan-raw-{args.instanceName}"
 
         ensure_docker_volume(data_volume, already_exists_msg="Docker volume with jovyan data is found")
         ensure_docker_volume(work_volume, already_exists_msg="Docker volume with jovyan work is found")
         ensure_docker_volume(tmp_volume, already_exists_msg="Docker volume with jovyan tmp data is found")
+        ensure_docker_volume(raw_volume, already_exists_msg="Docker volume with jovyan raw data is found")
 
         return  [f"{data_volume}:/data",
                  f"{work_volume}:/home/jovyan/work",
-                 f"{tmp_volume}:/tmp"]
+                 f"{tmp_volume}:/tmp",
+                 f"{raw_volume}:/raw"]
 
     @staticmethod
     def _prepare_basic_mode(args):
@@ -327,11 +330,13 @@ class SinaraServer():
             jovyan_data_path = os.path.join(jovyan_root_path, "data")
             jovyan_work_path = os.path.join(jovyan_root_path, "work")
             jovyan_tmp_path = os.path.join(jovyan_root_path, "tmp")
+            jovyan_raw_path = os.path.join(jovyan_root_path, "raw")
 
             print("Creating work folders")
             os.makedirs(jovyan_data_path, exist_ok=True)
             os.makedirs(jovyan_work_path, exist_ok=True)
             os.makedirs(jovyan_tmp_path, exist_ok=True)
+            os.makedirs(jovyan_raw_path, exist_ok=True)
         else:
             if args.jovyanDataPath:
                 jovyan_data_path = get_expanded_path(args.jovyanDataPath)
@@ -361,7 +366,8 @@ class SinaraServer():
         
         return  [f"{jovyan_data_path}:/data",
                  f"{jovyan_work_path}:/home/jovyan/work",
-                 f"{jovyan_tmp_path}:/tmp"]
+                 f"{jovyan_tmp_path}:/tmp",
+                 f"{jovyan_raw_path}:/raw"]
         
     @staticmethod
     def get_notebook_user(instance):
@@ -376,6 +382,7 @@ class SinaraServer():
         notebook_user = SinaraServer.get_notebook_user(instance)
         docker_container_exec(instance, f"chown -R {notebook_user}:users /tmp")
         docker_container_exec(instance, f"chown -R {notebook_user}:users /data")
+        docker_container_exec(instance, f"chown -R {notebook_user}:users /raw")
         docker_container_exec(instance, f"chown {notebook_user}:users /home/$NB_USER")
         docker_container_exec(instance, f"chmod 777 /home/{notebook_user}")
         docker_container_exec(instance, f"chmod 777 /home/{notebook_user}/work")
@@ -502,7 +509,7 @@ class SinaraServer():
 
     @staticmethod
     def remove(args):
-        container_folders = ["/data", "/home/jovyan/work", "/tmp"]
+        container_folders = ["/data", "/home/jovyan/work", "/tmp", "/raw"]
         container_volumes = [f"jovyan-data-{args.instanceName}", f"jovyan-work-{args.instanceName}", f"jovyan-tmp-{args.instanceName}"]
 
         if not docker_container_exists(args.instanceName):
