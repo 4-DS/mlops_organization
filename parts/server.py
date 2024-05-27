@@ -37,7 +37,7 @@ class SinaraServer():
     subject = 'server'
     container_name = 'jovyan-single-use'
     sinara_images = [['buslovaev/sinara-notebook', 'buslovaev/sinara-cv'], ['buslovaev/sinara-notebook-exp', 'buslovaev/sinara-cv-exp']]
-    project_types = ["ml", "cv"]
+    server_types = ["ml", "cv"]
     root_parser = None
     subject_parser = None
     create_parser = None
@@ -63,23 +63,25 @@ class SinaraServer():
         SinaraServer.create_parser = server_cmd_parser.add_parser('create', help='create sinara server')
         SinaraServer.create_parser.add_argument('--instanceName', default=SinaraServer.container_name, type=str, help='sinara server container name (default: %(default)s)')
         SinaraServer.create_parser.add_argument('--runMode', default='q', choices=["q", "b"], help='Runmode, quick (q) - work, data, tmp will be mounted inside docker volumes, basic (b) - work, data, tmp will be mounted from host folders (default: %(default)s)')
-        SinaraServer.create_parser.add_argument('--createFolders', default='y', choices=["y", "n"], help='y - create work, data, tmp folders in basic mode automatically, n - folders must be created manually (default: %(default)s)')
+        SinaraServer.create_parser.add_argument('--createFolders', action='store_true', help='create work, data, tmp folders in basic mode automatically if not exists, or else folders must be created manually (default: %(default)s)')
         SinaraServer.create_parser.add_argument('--gpuEnabled', choices=["y", "n"], help='y - Enables docker container to use Nvidia GPU, n - disable GPU')
         SinaraServer.create_parser.add_argument('--memLimit', default=str(SinaraServer.get_memory_size_limit()), type=str, help='Maximum amount of memory for server container (default: %(default)s)')
         SinaraServer.create_parser.add_argument('--cpuLimit', default=SinaraServer.get_cpu_cores_limit(), type=int, help='Number of CPU cores to use for server container (default: %(default)s)')
-        SinaraServer.create_parser.add_argument('--jovyanRootPath', type=str, help='Path to parent folder for data, work and tmp (only used in basic mode with createFolders=y)')
+        SinaraServer.create_parser.add_argument('--jovyanRootPath', type=str, help='Path to parent folder for data, work, raw and tmp (only used in basic mode with --createFolders)')
         SinaraServer.create_parser.add_argument('--jovyanDataPath', type=str, help='Path to data fodler on host (only used in basic mode)')
         SinaraServer.create_parser.add_argument('--jovyanWorkPath', type=str, help='Path to work folder on host (only used in basic mode)')
+        SinaraServer.create_parser.add_argument('--jovyanRawPath', type=str, help='Path to raw folder on host (only used in basic mode)')
         SinaraServer.create_parser.add_argument('--jovyanTmpPath', type=str, help='Path to tmp folder on host (only used in basic mode)')
         #SinaraServer.create_parser.add_argument('--infraName', default=SinaraInfra.LocalFileSystem, choices=SinaraServer.get_available_infra_names(), type=str, help='Infrastructure name to use (default: %(default)s)')
         SinaraServer.create_parser.add_argument('--insecure', action='store_true', help='Run server without password protection')
         SinaraServer.create_parser.add_argument('--platform', default="desktop", type=str, help='Server platform - get all available platforms with "sinara org list"')
         #SinaraServer.create_parser.add_argument('--platform', default=SinaraPlatform.Desktop, choices=list(SinaraPlatform), type=SinaraPlatform, help='Server platform - host where the server is run')
-        SinaraServer.create_parser.add_argument('--experimental', action='store_true', help='Use expermiental server images')
+        SinaraServer.create_parser.add_argument('--experimental', action='store_true', help='Use experimiental server images')
         SinaraServer.create_parser.add_argument('--image', type=str, help='Custom server image name')
-        SinaraServer.create_parser.add_argument('--shm_size', type=str, default=str(SinaraServer.get_default_shm_size()), help='Docker shared memory size option (default: %(default)s)')
+        SinaraServer.create_parser.add_argument('--shmSize', type=str, default=str(SinaraServer.get_default_shm_size()), help='Docker shared memory size option (default: %(default)s)')
         SinaraServer.create_parser.add_argument('--fromConfig', type=str, help='Create a server using server.json config')
-        SinaraServer.create_parser.add_argument('--project', type=str, choices=SinaraServer.project_types, help='Project type for server (default: %(default)s)')
+        SinaraServer.create_parser.add_argument('--project', type=str, choices=SinaraServer.server_types, help='DEPRECATED: use --serverType. Project type for server (default: %(default)s)')
+        SinaraServer.create_parser.add_argument('--serverType', type=str, choices=SinaraServer.server_types, help='SinaraML Server type (default: %(default)s)')
         SinaraServer.create_parser.set_defaults(func=SinaraServer.create)
 
     @staticmethod
@@ -219,19 +221,21 @@ class SinaraServer():
             print(f"Sinara server {args.instanceName} aleady exists, remove it and run create again")
             return
 
-        if not args.project:
+        if args.project:
+            args.serverType = args.project
+        if not args.serverType:
             sinara_image_num = -1
             while sinara_image_num not in [0, 1]:
                 try:
-                    sinara_image_num = int(input('Please, choose a Sinara for 1) ML or 2) CV projects: ')) - 1
-                    args.project = SinaraServer.project_types[sinara_image_num]
+                    sinara_image_num = int(input('Please, choose a SinaraML Server type for [1] ML or [2] CV: ')) - 1
+                    args.serverType = SinaraServer.server_types[sinara_image_num]
                 except ValueError:
                     pass
 
         else:
-            sinara_image_num = SinaraServer.project_types.index(args.project)
+            sinara_image_num = SinaraServer.server_types.index(args.serverType)
 
-        if args.project == "cv":
+        if args.serverType == "cv":
             args.gpuEnabled = "y"  
 
         if args.gpuEnabled == "y":
@@ -269,7 +273,7 @@ class SinaraServer():
             "name": args.instanceName,
             "mem_limit": args.memLimit,
             "nano_cpus": 1000000000 * int(args.cpuLimit), # '--cpus' parameter equivalent in python docker client
-            "shm_size": args.shm_size,
+            "shm_size": args.shmSize,
             "ports": SinaraServer.get_ports_mapping(),
             "volumes": docker_volumes,
             "environment": {
@@ -287,7 +291,7 @@ class SinaraServer():
                 "sinaraml.platform": str(args.platform),
                 #"sinaraml.infra": str(args.infraName),
                 "sinaraml.config.path": str(cm.server_config),
-                "sinaraml.project": str(args.project),
+                "sinaraml.serverType": str(args.serverType),
                 "sinaraml.cli.version": str(get_cli_version())
             },
             "device_requests": gpu_requests # '--gpus all' flag equivalent in python docker client
@@ -319,7 +323,7 @@ class SinaraServer():
     def _prepare_basic_mode(args):
         #folders_exist = ''
         
-        if args.createFolders == "y":
+        if args.createFolders == True or args.createFolders == "y":
              
             if args.jovyanRootPath:
                 jovyan_root_path = get_expanded_path(args.jovyanRootPath)
@@ -341,20 +345,26 @@ class SinaraServer():
             if args.jovyanDataPath:
                 jovyan_data_path = get_expanded_path(args.jovyanDataPath)
             else:
-                jovyan_data_path = get_expanded_path( input("Please, choose jovyan Data path: ") )
+                jovyan_data_path = get_expanded_path( input("Please, enter Data path: ") )
                 args.jovyanDataPath = jovyan_data_path
             
             if args.jovyanWorkPath:
                 jovyan_work_path = get_expanded_path(args.jovyanWorkPath)
             else:
-                jovyan_work_path = get_expanded_path( input("Please, choose jovyan Work path: ") )
+                jovyan_work_path = get_expanded_path( input("Please, enter Work path: ") )
                 args.jovyanWorkPath = jovyan_work_path
 
             if args.jovyanTmpPath:
                 jovyan_tmp_path = get_expanded_path(args.jovyanTmpPath)
             else:
-                jovyan_tmp_path = get_expanded_path( input("Please, choose jovyan Tmp path: ") )
+                jovyan_tmp_path = get_expanded_path( input("Please, enter Tmp path: ") )
                 args.jovyanTmpPath = jovyan_tmp_path
+
+            if args.jovyanRawPath:
+                jovyan_raw_path = get_expanded_path(args.jovyanRawPath)
+            else:
+                jovyan_raw_path = get_expanded_path( input("Please, enter Raw path: ") )
+                args.jovyanRawPath = jovyan_raw_path
 
             # while folders_exist not in ["y", "n"]:
             #     folders_exist = input("Please, ensure that the folders exist (y/n): ")
@@ -544,7 +554,7 @@ class SinaraServer():
         if not args.image:
             while sinara_image_num not in [1, 2]:
                 try:
-                    sinara_image_num = int(input('Please, choose a Sinara image to update 1) ML or 2) CV projects: '))
+                    sinara_image_num = int(input('Please, choose a SinaraML Server to update [1] ML or [2] CV:'))
                 except ValueError:
                     pass
         elif args.image == "ml":
@@ -597,17 +607,17 @@ class SinaraServer():
             container_name = sinara_container.attrs["Names"][0][1:]
             container_image = sinara_container.attrs["Image"]
             container_status = sinara_container.attrs["Status"]
-            if "sinaraml.project" in sinara_container.attrs["Labels"]:
-                container_project = sinara_container.attrs["Labels"]["sinaraml.project"]
+            if "sinaraml.serverType" in sinara_container.attrs["Labels"]:
+                container_type = sinara_container.attrs["Labels"]["sinaraml.serverType"]
             else:
                 # fallback to guessing by name
                 if "notebook" in container_image:
-                    container_project = SinaraServer.project_types[0]
+                    container_type = SinaraServer.server_types[0]
                 else:
-                    container_project = SinaraServer.project_types[1]
+                    container_type = SinaraServer.server_types[1]
             print(f"\n{fc.CYAN}Server{fc.RESET}: {fc.WHITE}{container_name}{fc.RESET}\n" \
                   f"{fc.CYAN}Image{fc.RESET}: {fc.WHITE}{container_image}{fc.RESET}\n" \
-                  f"{fc.CYAN}Type{fc.RESET}: {fc.WHITE}{container_project}{fc.RESET}\n" \
+                  f"{fc.CYAN}Type{fc.RESET}: {fc.WHITE}{container_type}{fc.RESET}\n" \
                   f"{fc.CYAN}Status{fc.RESET}: {fc.WHITE}{container_status}{fc.RESET}")
             if sinara_container.attrs['Status'].lower() in ["running", "up"]:
                 server_clickable_url = SinaraServer.get_server_clickable_url(sinara_container.name)
@@ -622,20 +632,20 @@ class SinaraServer():
 
                     server_name = server_config['container']['name']
                     server_image = server_config['container']['image']
-                    if "sinaraml.project" in server_config['container']["labels"]:
-                        server_project = server_config['container']["labels"]["sinaraml.project"]
+                    if "sinaraml.serverType" in server_config['container']["labels"]:
+                        server_type = server_config['container']["labels"]["sinaraml.serverType"]
                     else:
                         # fallback to guessing by name
                         if "notebook" in server_image:
-                            server_project = SinaraServer.project_types[0]
+                            server_type = SinaraServer.server_types[0]
                         else:
-                            server_project = SinaraServer.project_types[1]
+                            server_type = SinaraServer.server_types[1]
                     removal_time = datetime.datetime.strptime(server.split('.')[-1], "%Y%m%d-%H%M%S")
                     removal_time_str = removal_time.strftime("%d.%m.%Y %H:%M:%S")
                     reset_command = server_config['cmd']
                     print(f"\n{fc.CYAN}Server: {fc.WHITE}{server_name}{fc.RESET}\n" \
                         f"{fc.CYAN}Image{fc.RESET}: {server_image}{fc.RESET}\n" \
-                        f"{fc.CYAN}Type{fc.RESET}: {fc.WHITE}{server_project}{fc.RESET}\n" \
+                        f"{fc.CYAN}Type{fc.RESET}: {fc.WHITE}{server_type}{fc.RESET}\n" \
                         f"{fc.CYAN}Status{fc.RESET}: {fc.WHITE}removed{fc.RESET}\n" \
                         f"{fc.CYAN}Removed at{fc.RESET}: {fc.WHITE}{removal_time_str}{fc.RESET}\n" \
                         f"{fc.CYAN}To create it again use command{fc.RESET}: {fc.WHITE}\nsinara server create --fromConfig {sinara_removed_server[server]}{fc.RESET}")
