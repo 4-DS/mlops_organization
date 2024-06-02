@@ -6,6 +6,8 @@ import logging
 import tqdm
 from time import sleep
 import requests
+import json
+from urllib.parse import urlparse
     
 
 def docker_volume_exists(volume_name):
@@ -134,28 +136,69 @@ def docker_pull_image(image):
     client = docker.from_env()
     with tqdm.tqdm(unit=" b") as progress_bar:
         layers = {}
-        for data in client.api.pull(image, stream=True, decode=True):
-            progress = data.get("progressDetail")
-            layer_id = data.get("id")
+        try:
+            for data in client.api.pull(image, stream=True, decode=True):
+                progress = data.get("progressDetail")
+                layer_id = data.get("id")
 
-            if (layer_id is not None) and (progress is not None):
-                layers[layer_id] = progress
+                if (layer_id is not None) and (progress is not None):
+                    layers[layer_id] = progress
 
-                progress_bar.total = sum(
-                    [
-                        val.get("total", 0)
-                        for _, val in layers.items()
-                        if val is not None
-                    ]
-                )
-                progress_bar.n = sum(
-                    [
-                        val.get("current", 0)
-                        for _, val in layers.items()
-                        if val is not None
-                    ]
-                )
-            progress_bar.update(0)
+                    progress_bar.total = sum(
+                        [
+                            val.get("total", 0)
+                            for _, val in layers.items()
+                            if val is not None
+                        ]
+                    )
+                    progress_bar.n = sum(
+                        [
+                            val.get("current", 0)
+                            for _, val in layers.items()
+                            if val is not None
+                        ]
+                    )
+                progress_bar.update(0)
+        except errors.NotFound:
+            logging.warning(f"Cannot get pull image {image}. Trying alternatives.")
+            doker_pull_image_alt(image)
+
+def doker_pull_image_alt(image):
+    with open(Path(__file__).parent.parent / 'mlops_organization.json') as f:
+        org = json.load(f)
+    #print(org)
+    platform_images = org['cli_bodies'][0]['platform_images']
+    for serverTypes in platform_images.keys():
+        alt_images = platform_images[serverTypes]
+        
+        if alt_images[0] == image:
+            break
+        else:
+            alt_images = [image]
+    print(alt_images)
+    for alt_image in alt_images[1:]:
+        logging.info(f"Found alternative: {alt_image}.")
+        if alt_image.startswith('http'):
+            image_filepath = Path(Path(__file__).parent.parent) / Path(urlparse(alt_image).path).name
+            _download_image(alt_image, image_filepath)
+            client = docker.from_env()
+            with open(image_filepath, 'rb') as f:
+                client.api.load_image(f, False)
+
+def _download_image(url, filepath):
+    print(f"Downloading {url}")
+    # Streaming, so we can iterate over the response.
+    response = requests.get(url, stream=True)
+    # Sizes in bytes.
+    total_size = int(response.headers.get("content-length", 0))
+    block_size = 1024
+    with tqdm.tqdm(total=total_size, unit="B", unit_scale=True) as progress_bar:
+        with open(filepath, "wb") as file:
+            for data in response.iter_content(block_size):
+                progress_bar.update(len(data))
+                file.write(data)
+    if total_size != 0 and progress_bar.n != total_size:
+        raise RuntimeError("Could not download file")
 
 def docker_get_port_on_host(container_name, container_port):
     client = docker.from_env()
