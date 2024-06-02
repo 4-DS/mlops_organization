@@ -11,10 +11,10 @@
         "git_url": "https://github.com",
         "platform_names": ["desktop", "remote"],
         "platform_images": {
-            "ml": "buslovaev/sinara-notebook",
-            "cv": "buslovaev/sinara-cv",
-            "ml-exp": "buslovaev/sinara-notebook-exp",
-            "cv-exp": "buslovaev/sinara-cv-exp"
+            "ml": ["buslovaev/sinara-notebook", "https://sinaraml-data-public.website.yandexcloud.net/sinara_notebook_latest.tar.gz"],
+            "cv": ["buslovaev/sinara-cv", "https://sinaraml-data-public.website.yandexcloud.net/sinara_cv_latest.tar.gz"],
+            "ml-exp": ["buslovaev/sinara-notebook-exp", "https://sinaraml-data-public.website.yandexcloud.net/sinara_notebook_exp_latest.tar.gz"],
+            "cv-exp": ["buslovaev/sinara-cv-exp", "https://sinaraml-data-public.website.yandexcloud.net/sinara_cv_exp_latest.tar.gz"]
         },
         "parts": {
             "server": {
