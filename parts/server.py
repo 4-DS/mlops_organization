@@ -206,6 +206,13 @@ class SinaraServer():
         return int(total_mem_bytes / 6)
 
     @staticmethod
+    def ensure_proxy_from_host(instance):
+        keep_env_in_sudo_cmd = "sed -i '/Defaults:%sudo env_keep += \"http_proxy https_proxy ftp_proxy all_proxy no_proxy\"/s/^#//g' /etc/sudoers"
+        exit_code, output = docker_container_exec(instance, keep_env_in_sudo_cmd)
+        if exit_code:
+            print("Failed to set proxy settings for sudo users, apt / apt-get might not work properly")
+
+    @staticmethod
     def create(args):
         if args.fromConfig:
             print(f"Using config {args.fromConfig} to create the sinara server")
@@ -501,6 +508,7 @@ class SinaraServer():
         
         docker_container_start(args.instanceName)
         SinaraServer.prepare_mounted_folders(args.instanceName)
+        SinaraServer.ensure_proxy_from_host(args.instanceName)
         
         platform = SinaraServer.get_server_platform(args.instanceName)
         server_clickable_url = SinaraServer.get_server_clickable_url(args.instanceName)
