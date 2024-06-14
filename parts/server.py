@@ -628,9 +628,10 @@ class SinaraServer():
                   f"{fc.CYAN}Image{fc.RESET}: {fc.WHITE}{container_image}{fc.RESET}\n" \
                   f"{fc.CYAN}Type{fc.RESET}: {fc.WHITE}{container_type}{fc.RESET}\n" \
                   f"{fc.CYAN}Status{fc.RESET}: {fc.WHITE}{container_status}{fc.RESET}")
-            if sinara_container.attrs['Status'].lower() in ["running", "up"]:
-                server_clickable_url = SinaraServer.get_server_clickable_url(sinara_container.name)
-                print(f"{fc.CYAN}Url{fc.RESET}: {fc.WHITE}{server_clickable_url}{fc.RESET}")
+            if container_status.lower().startswith("running") or container_status.lower().startswith("up"):
+                server_clickable_urls = SinaraServer.get_server_clickable_url(container_name)
+                url_str = ", ".join(server_clickable_urls)
+                print(f"{fc.CYAN}Urls{fc.RESET}: {fc.WHITE}{url_str}{fc.RESET}")
         
         if not args.hideRemoved:
             print(f"\n{fc.HEADER}Sinara removed servers:\n-------------------------------------{fc.RESET}")
