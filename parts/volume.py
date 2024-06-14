@@ -43,8 +43,14 @@ class SinaraVolume:
     def print_as_table(args, volumes, list_header):
         print(f"{fc.HEADER}{list_header}{fc.RESET}{fc.HEADER}\n************************************\n")
         for server in volumes:
-            print(f"{fc.CYAN}Server:{fc.RESET} {fc.WHITE}{server}{fc.RESET}{fc.CYAN}\nVolumes:{fc.RESET}")
+            # hide servers with 0 usage
             vols = volumes[server]["volumes"]
+            non_empty_server = [x for x in vols if x["used"] != "0B" and x["used"].lower() != "n/a"]
+            if not non_empty_server:
+                continue
+                
+            print(f"{fc.CYAN}Server:{fc.RESET} {fc.WHITE}{server}{fc.RESET}{fc.CYAN}\nVolumes:{fc.RESET}")
+            
             header = vols[0].keys()
             rows = [x.values() for x in vols]
             print(tabulate(rows, header))
