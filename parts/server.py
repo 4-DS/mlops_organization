@@ -405,6 +405,7 @@ class SinaraServer():
         docker_container_exec(instance, f"chmod 777 /home/{notebook_user}")
         docker_container_exec(instance, f"chmod 777 /home/{notebook_user}/work")
         docker_container_exec(instance, "rm -rf /tmp/*")
+        docker_container_exec(instance, f"chmod 777 /tmp")
 
     @staticmethod
     def get_server_logs(instance, server_command):
