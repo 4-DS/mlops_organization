@@ -275,3 +275,11 @@ def docker_list_containers(label_key, sparse_output=True):
 def docker_list_volumes():
     client = docker.from_env()
     return client.df()["Volumes"]
+
+def docker_image_exists(image_name):
+    client = docker.from_env()
+    try:
+        container = client.images.get(image_name)
+    except errors.ImageNotFound:
+        return False
+    return True

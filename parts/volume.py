@@ -1,10 +1,13 @@
 from tabulate import tabulate
 import json
 import os
+from datetime import datetime
+import logging
 
-from .docker_utils import docker_list_volumes, docker_list_containers, docker_volume_remove, docker_volume_exists
+from .docker_utils import docker_list_volumes, docker_list_containers, docker_volume_remove, docker_volume_exists, docker_container_run, docker_image_exists
 from .common_utils import convert_size, fc, platform_is_wsl, get_folder_size
 from .config_manager import SinaraGlobalConfigManager
+from .server import SinaraServer
 
 class VolumeAttachedToActiveServerException(Exception):
     pass
@@ -19,6 +22,10 @@ class SinaraVolume:
 
     subject = 'volume'
     list_parser = None
+    remove_parser = None
+    clean_parser = None
+    days_to_keep = 7
+    mount_points = ["/data", "/tmp", "/home/jovyan/work"]
     
     @staticmethod
     def add_command_handlers(root_parser, subject_parser):
@@ -26,6 +33,7 @@ class SinaraVolume:
         volume_subparsers = parser_volume.add_subparsers(title='action', dest='action', help='Action to do with subject')
         SinaraVolume.add_list_handler(volume_subparsers)
         SinaraVolume.add_remove_handler(volume_subparsers)
+        SinaraVolume.add_clean_handler(volume_subparsers)
 
     @staticmethod
     def add_list_handler(volume_cmd_parser):
@@ -38,6 +46,16 @@ class SinaraVolume:
         SinaraVolume.remove_parser = remove_cmd_parser.add_parser('remove', help='remove sinara volumes')
         SinaraVolume.remove_parser.add_argument('volume', type=str, help='Sinara volume name')
         SinaraVolume.remove_parser.set_defaults(func=SinaraVolume.remove)
+
+    @staticmethod
+    def add_clean_handler(clean_cmd_parser):
+        SinaraVolume.clean_parser = clean_cmd_parser.add_parser('clean', help='clean sinara volumes')
+        SinaraVolume.clean_parser.add_argument('--instanceName', default=SinaraServer.container_name, type=str, help='sinara server container name (default: %(default)s)')
+        SinaraVolume.clean_parser.add_argument('--data', action='store_true', help='Clean data volume')
+        SinaraVolume.clean_parser.add_argument('--tmp', action='store_true', help='Clean tmp volume')
+        SinaraVolume.clean_parser.add_argument('--work', action='store_true', help='Clean work volume')
+        SinaraVolume.clean_parser.add_argument('--days_keep', type=int, default=SinaraVolume.days_to_keep, help='Clean interval (default: %(default)s)')
+        SinaraVolume.clean_parser.set_defaults(func=SinaraVolume.clean)
 
     @staticmethod
     def print_as_table(args, volumes, list_header):
@@ -109,17 +127,22 @@ class SinaraVolume:
                     docker_volume = [vol for vol in all_docker_volumes if vol["Name"] == volume["Name"]][0]
                     volume_parsed["used"] = convert_size(docker_volume["UsageData"]["Size"])
                     volume_parsed["type"] = SinaraVolume.get_volume_type_description(volume)
+                    volume_parsed["mounted_at"] = volume["Destination"]
                 
                 elif volume["Type"] == "bind":
                     if platform_is_wsl():
-                        volume_parsed["name"] = SinaraVolume._get_bind_vol_wsl_source(sinara_container, volume["Destination"])
+                        volume_parsed["name"] = SinaraVolume._get_bind_vol_wsl_source(sinara_container, volume["Destination"])                        
                     else:
                         volume_parsed["name"] = volume["Source"]
                     volume_parsed["used"] = convert_size(get_folder_size(volume_parsed["name"]))
                     volume_parsed["type"] = SinaraVolume.get_volume_type_description(volume)
-                
+                    volume_parsed["mounted_at"] = volume["Destination"]
+                                   
                 else:
                     raise Exception(f"Unsupported volume type {volume['Type']}")
+                
+                volume_parsed["source"] = volume["Source"]
+                
                 volumes[container_name]["volumes"].append(volume_parsed)
         return volumes
         
@@ -146,7 +169,6 @@ class SinaraVolume:
                     volume_parsed = {}
                     if volume["Type"] == "volume":
                         volume_parsed["name"] = volume["Name"]
-                        #volume_parsed["mounted at"] = volume["Destination"]
                         
                         docker_volumes = [vol for vol in all_docker_volumes if vol["Name"] == volume["Name"]]
                         if docker_volumes:
@@ -156,25 +178,30 @@ class SinaraVolume:
                             volume_parsed["used"] = "N/A"
                             
                         volume_parsed["exists"] = True if len(docker_volumes) > 0 else False
+                        #volume_parsed["source"] = docker_volumes[volume_parsed["name"]]["Source"] if len(docker_volumes) > 0 else ""
                         volume_parsed["type"] = SinaraVolume.get_volume_type_description(volume)
+                        
+                        volume_parsed["source"] = docker_volume["Mountpoint"] if len(docker_volumes) > 0 else ""
+                        volume_parsed["mounted_at"] = volume["Destination"]
                     
                     elif volume["Type"] == "bind":
                         volume_parsed["name"] = volume["Name"]
-                        #volume_parsed["mounted at"] = volume["Destination"]
                         
                         if os.path.exists(volume_parsed["name"]):
                             volume_parsed["used"] = convert_size(get_folder_size(volume_parsed["name"]))
                         else:
                             volume_parsed["used"] = "N/A"
                             
-                        volume_parsed["type"] = SinaraVolume.get_volume_type_description(volume)   
-                        volume_parsed["exists"] = os.path.exists(volume_parsed["name"])   
+                        volume_parsed["type"] = SinaraVolume.get_volume_type_description(volume)
+                        volume_parsed["exists"] = os.path.exists(volume_parsed["name"])
+                        print(volume)
+                        volume_parsed["mounted_at"] = volume["Destination"]
                     
                     else:
                         raise Exception(f"Unsupported volume type {volume['Type']}")
                     
+                    
                     volumes_of_removed_servers[container_name]["volumes"].append(volume_parsed)
-                
             except Exception as e:
                 print(f"{fc.RED}\nServer config at {sinara_removed_servers[removed_server]} cannot be read, skipping{fc.RESET}")
                 
@@ -216,3 +243,74 @@ class SinaraVolume:
             raise VolumeNotFoundException(f"Volume '{args.volume}' not found")
         
         print(f"Sinara volume '{args.volume}' removed")
+        
+    @staticmethod
+    def _get_maintenance_image():
+        for image_sublist in SinaraServer.sinara_images:
+            for image in image_sublist:
+                if docker_image_exists(image):
+                    return image
+        return "ubuntu:22.04"
+    
+    @staticmethod
+    def clean_files(server_name, volume, days_to_keep):
+        m_image = SinaraVolume._get_maintenance_image()
+        mounted_folder = volume["mounted_at"]
+        source = volume["source"]
+        type = volume["type"]
+        days = f"+{days_to_keep}" if days_to_keep > 0 else str(days_to_keep)
+        
+        if type == "docker volume":
+            name = volume["name"]
+            docker_volumes = [f"{name}:{mounted_folder}"]
+        else:
+            docker_volumes = [f"{source}:{mounted_folder}"]
+            
+        clean_cmd = f"find {mounted_folder} -type f -mtime {days} -name '*.*' -execdir rm -v -- '{{}}' \;"
+        docker_container_run(m_image,
+                            clean_cmd, 
+                            volumes=docker_volumes,
+                            remove=True)
+        
+    @staticmethod
+    def clean(args):
+        active_server_volumes = SinaraVolume._get_active_servers_volumes()
+        removed_server_volumes = SinaraVolume._get_removed_servers_volumes()
+        
+        already_cleaned_folders = []
+        mount_points_to_clean = []
+        
+        if args.data:
+            print("Cleaning data sinara volume")
+            mount_points_to_clean.append(SinaraVolume.mount_points[0])                   
+        if args.tmp:
+            print("Cleaning tmp sinara volume")
+            mount_points_to_clean.append(SinaraVolume.mount_points[1])
+        if args.work:
+            print("Cleaning work sinara volume")
+            mount_points_to_clean.append(SinaraVolume.mount_points[2])
+            
+        if not mount_points_to_clean:
+            volume_number = 0
+            while volume_number not in range(1, len(SinaraVolume.mount_points)):
+                try:
+                    volume_number = int(input("Select sinara volume number to clean\n1) data volume\n2) tmp volume\n3) work volume\n: "))
+                except ValueError:
+                    pass
+            mount_points_to_clean.append(SinaraVolume.mount_points[volume_number-1])
+
+        for server in active_server_volumes:
+            if server == args.instanceName:
+                volumes = active_server_volumes[server]["volumes"]
+                for volume in volumes:
+                    if volume["mounted_at"] in mount_points_to_clean:
+                        SinaraVolume.clean_files(args.instanceName, volume, args.days_keep)
+                        already_cleaned_folders.append(volume["source"])
+                        
+        for server in removed_server_volumes:
+            if server == args.instanceName:
+                volumes = removed_server_volumes[server]["volumes"]
+                for volume in volumes:
+                    if volume["mounted_at"] in mount_points_to_clean and volume["exists"] and volume["source"] not in already_cleaned_folders:
+                        SinaraVolume.clean_files(args.instanceName, volume, args.days_keep)
+                        already_cleaned_folders.append(volume["source"])
