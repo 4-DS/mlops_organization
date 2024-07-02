@@ -307,7 +307,6 @@ class SinaraServer():
 
         docker_container_create(**server_params)
         SinaraServer.save_server_config(server_params, args, cm)
-
         print(f"Sinara server {args.instanceName} is created")
 
     @staticmethod
@@ -510,6 +509,7 @@ class SinaraServer():
         docker_container_start(args.instanceName)
         SinaraServer.prepare_mounted_folders(args.instanceName)
         SinaraServer.ensure_proxy_from_host(args.instanceName)
+        docker_container_exec(args.instanceName, f"pip install sinaraml_jupyter -U")
         
         platform = SinaraServer.get_server_platform(args.instanceName)
         server_clickable_url = SinaraServer.get_server_clickable_url(args.instanceName)
