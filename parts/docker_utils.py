@@ -18,7 +18,7 @@ def get_docker_client():
         except Exception as e:
             logging.debug(e)
         retries -= 1
-        logging.debug("Sleeping 30s before next try to connect to docker daemon...")
+        logging.warning("Failed to connect to docker daemon, will try again after 30s...")
         sleep(30)
     raise Exception(f"Cannot connect to docker daemon")
 
