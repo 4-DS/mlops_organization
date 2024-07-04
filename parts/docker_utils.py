@@ -8,11 +8,23 @@ from time import sleep
 import requests
 import json
 from urllib.parse import urlparse
+
+def get_docker_client():
+    retries = 3
     
+    while retries:
+        try:
+            return docker.from_env()
+        except Exception as e:
+            logging.debug(e)
+        retries -= 1
+        logging.debug("Sleeping 30s before next try to connect to docker daemon...")
+        sleep(30)
+    raise Exception(f"Cannot connect to docker daemon")
 
 def docker_volume_exists(volume_name):
     try:
-        client = docker.from_env()
+        client = get_docker_client()
         client.volumes.get(volume_name)
         return True
     except errors.NotFound:
@@ -27,19 +39,19 @@ def ensure_docker_volume(volume_name, already_exists_msg):
 
 
 def docker_volume_create(volume_name):
-    client = docker.from_env()
+    client = get_docker_client()
     client.volumes.create(name=volume_name)
 
 
 def docker_volume_remove(volume_name):
-    client = docker.from_env()
+    client = get_docker_client()
     if docker_volume_exists(volume_name):
         volume = client.volumes.get(volume_name)
         volume.remove(force=True)
 
 def docker_container_exists(container_name):
     try:
-        client = docker.from_env()
+        client = get_docker_client()
         client.containers.get(container_name)
         return True
     except errors.NotFound:
@@ -47,7 +59,7 @@ def docker_container_exists(container_name):
     return False
 
 def docker_container_running(container_name):
-    client = docker.from_env()
+    client = get_docker_client() 
     if docker_container_exists(container_name):
         container = client.containers.get(container_name)
         if container.status.lower() == "running":
@@ -56,7 +68,7 @@ def docker_container_running(container_name):
 
 def docker_container_create(image, command=None, **kwargs):
     try:
-        client = docker.from_env()
+        client = get_docker_client()
         client.containers.create(image, command=command, **kwargs)
     except errors.ImageNotFound:
             print(f"Pulling image {image}")
@@ -67,7 +79,7 @@ def docker_container_create(image, command=None, **kwargs):
 def docker_container_run(image, command=None, **kwargs):
     output = None
     try:
-        client = docker.from_env()
+        client = get_docker_client()
         output = client.containers.run(image, command=command, **kwargs)
     except errors.ImageNotFound:
             print(f"Pulling image {image}")
@@ -77,35 +89,35 @@ def docker_container_run(image, command=None, **kwargs):
     return output
 
 def docker_container_start(container_name):
-    client = docker.from_env()
+    client = get_docker_client()
     container = client.containers.get(container_name)
     container.start()
 
 def docker_container_stop(container_name):
-    client = docker.from_env()
+    client = get_docker_client()
     container = client.containers.get(container_name)
     container.stop()
 
 def docker_container_pause(container_name):
-    client = docker.from_env()
+    client = get_docker_client()
     container = client.containers.get(container_name)
     container.pause()
 
 def docker_container_remove(container_name):
     try:
-        client = docker.from_env()
+        client = get_docker_client()
         container = client.containers.get(container_name)
         container.remove(force=True)
     except errors.NotFound as e:
         logging.debug(e)
     
 def docker_container_exec(container_name, command):
-    client = docker.from_env()
+    client = get_docker_client()
     container = client.containers.get(container_name)
     return container.exec_run(command, privileged=True, user='root', stream=False, demux=True)
 
 def docker_copy_from_container(container_name, src_path, dest_path):
-    client = docker.from_env()
+    client = get_docker_client()
     container = client.containers.get(container_name)
     stream, stat = container.get_archive(src_path)
     archive_file_path = Path(dest_path) / '_tmp_archive.tar'
@@ -127,13 +139,13 @@ def docker_build_image(**kwargs):
         kwargs_with_logging = dict(kwargs, decode=True)
     else:
         kwargs_with_logging = dict(kwargs)
-    client = docker.from_env()
+    client = get_docker_client()
     for data in client.api.build(**kwargs_with_logging):
         if "stream" in data:
             print(data["stream"])
     
 def docker_pull_image(image):
-    client = docker.from_env()
+    client = get_docker_client()
     with tqdm.tqdm(unit=" b") as progress_bar:
         layers = {}
         try:
@@ -181,7 +193,7 @@ def doker_pull_image_alt(image):
         if alt_image.startswith('http'):
             image_filepath = Path(Path(__file__).parent.parent) / Path(urlparse(alt_image).path).name
             _download_image(alt_image, image_filepath)
-            client = docker.from_env()
+            client = get_docker_client()
             with open(image_filepath, 'rb') as f:
                 client.api.load_image(f, False)
 
@@ -201,7 +213,7 @@ def _download_image(url, filepath):
         raise RuntimeError("Could not download file")
 
 def docker_get_port_on_host(container_name, container_port):
-    client = docker.from_env()
+    client = get_docker_client()
     container = client.containers.get(container_name)
     # need to use low-level API to get ports spec
     port_data = client.api.inspect_container(container.id)['NetworkSettings']['Ports']
@@ -211,7 +223,7 @@ def docker_get_port_on_host(container_name, container_port):
     return None
     
 def docker_get_container_labels(container_name):
-    client = docker.from_env()
+    client = get_docker_client()
     container = client.containers.get(container_name)
     # need to use low-level API to get labels
     return container.labels
@@ -264,20 +276,20 @@ def docker_get_latest_image_version(image_name, repo_name="buslovaev"):
     return result
 
 def docker_get_container_mounts(container_name):
-    client = docker.from_env()
+    client = get_docker_client()
     container = client.containers.get(container_name)
     return client.api.inspect_container(container.id)['Mounts']
 
 def docker_list_containers(label_key, sparse_output=True):
-    client = docker.from_env()
+    client = get_docker_client()
     return client.containers.list(all=True, ignore_removed=True, sparse=sparse_output, filters={"label": label_key})
 
 def docker_list_volumes():
-    client = docker.from_env()
+    client = get_docker_client()
     return client.df()["Volumes"]
 
 def docker_image_exists(image_name):
-    client = docker.from_env()
+    client = get_docker_client()
     try:
         container = client.images.get(image_name)
     except errors.ImageNotFound:
