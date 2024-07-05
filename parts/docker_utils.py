@@ -20,7 +20,7 @@ def get_docker_client():
         retries -= 1
         logging.warning("Failed to connect to docker daemon, will try again after 30s...")
         sleep(30)
-    raise Exception(f"Cannot connect to docker daemon")
+    raise Exception(f"Cannot connect to docker daemon.\nCheck if Docker is installed and running")
 
 def docker_volume_exists(volume_name):
     try:
