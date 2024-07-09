@@ -35,7 +35,7 @@ from .config_manager import SinaraServerConfigManager, SinaraGlobalConfigManager
 class SinaraServer():
 
     subject = 'server'
-    container_name = 'jovyan-single-use'
+    container_name = 'personal_public_desktop'
     sinara_images = [['buslovaev/sinara-notebook', 'buslovaev/sinara-cv'], ['buslovaev/sinara-notebook-exp', 'buslovaev/sinara-cv-exp']]
     server_types = ["ml", "cv"]
     root_parser = None
@@ -48,8 +48,8 @@ class SinaraServer():
     def add_command_handlers(root_parser, subject_parser):
         #SinaraServer.root_parser = root_parser
         #SinaraServer.subject_parser = subject_parser
-        parser_server = subject_parser.add_parser(SinaraServer.subject, help='sinara server subject')
-        server_subparsers = parser_server.add_subparsers(title='action', dest='action', help='Action to do with subject')
+        parser_server = subject_parser.add_parser(SinaraServer.subject, help='SinaraML Server commands')
+        server_subparsers = parser_server.add_subparsers(title='action', dest='action', help='Action to do with server')
 
         SinaraServer.add_create_handler(server_subparsers)
         SinaraServer.add_start_handler(server_subparsers)
@@ -60,7 +60,7 @@ class SinaraServer():
 
     @staticmethod
     def add_create_handler(server_cmd_parser):
-        SinaraServer.create_parser = server_cmd_parser.add_parser('create', help='create sinara server')
+        SinaraServer.create_parser = server_cmd_parser.add_parser('create', help='Create SinaraML Server')
         SinaraServer.create_parser.add_argument('--instanceName', default=SinaraServer.container_name, type=str, help='sinara server container name (default: %(default)s)')
         SinaraServer.create_parser.add_argument('--runMode', default='q', choices=["q", "b"], help='Runmode, quick (q) - work, data, tmp will be mounted inside docker volumes, basic (b) - work, data, tmp will be mounted from host folders (default: %(default)s)')
         SinaraServer.create_parser.add_argument('--createFolders', action='store_false', help='Create work, data, tmp folders in basic mode automatically if not exists, or else folders must be created manually (default: %(default)s)')

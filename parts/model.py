@@ -24,7 +24,7 @@ bentoservice_profiles_supported = {
 class SinaraModel():
 
     subject = 'model'
-    server_container_name = 'jovyan-single-use'
+    server_container_name = 'personal_public_desktop'
     model_container_name = 'sinara-model'
 
     @staticmethod
