@@ -505,7 +505,7 @@ class SinaraServer():
         sinara_containers = docker_list_containers("sinaraml.platform")
         for sinara_container in sinara_containers:
             container_name = sinara_container.attrs["Names"][0][1:]
-            if container_name == 'jovyan-single-use':
+            if container_name == 'jovyan-single-use' and args.instanceName == 'rusal_yandex_desktop':
                 args.instanceName = container_name
 
         if not docker_container_exists(args.instanceName):
@@ -530,6 +530,14 @@ class SinaraServer():
 
     @staticmethod
     def stop(args):
+
+        # check jovyan-single-use for backward compatibility
+        sinara_containers = docker_list_containers("sinaraml.platform")
+        for sinara_container in sinara_containers:
+            container_name = sinara_container.attrs["Names"][0][1:]
+            if container_name == 'jovyan-single-use' and args.instanceName == 'rusal_yandex_desktop':
+                args.instanceName = container_name
+
         if not docker_container_exists(args.instanceName):
             raise Exception(f"Your server with name {args.instanceName} doesn't exist")
         docker_container_stop(args.instanceName)
