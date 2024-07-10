@@ -500,6 +500,14 @@ class SinaraServer():
 
     @staticmethod
     def start(args):
+
+        # check jovyan-single-use for backward compatibility
+        sinara_containers = docker_list_containers("sinaraml.platform")
+        for sinara_container in sinara_containers:
+            container_name = sinara_container.attrs["Names"][0][1:]
+            if container_name == 'jovyan-single-use':
+                args.instanceName = container_name
+
         if not docker_container_exists(args.instanceName):
             print(f"Sinara server with name {args.instanceName} doesn't exist yet, run 'sinara server create' first")
             return
