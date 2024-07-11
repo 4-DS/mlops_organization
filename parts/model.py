@@ -79,11 +79,10 @@ class SinaraModel():
     @staticmethod
     def containerize(args):
 
-
         sinara_containers = docker_list_containers("sinaraml.platform")
         for sinara_container in sinara_containers:
             container_name = sinara_container.attrs["Names"][0][1:]
-            if container_name == 'jovyan-single-use' and args.instanceName == 'rusal_yandex_desktop':
+            if container_name == 'jovyan-single-use' and args.instanceName == 'personal_public_desktop':
                 args.instanceName = container_name
 
         def get_run_id_from_path(_path):
