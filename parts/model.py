@@ -11,7 +11,8 @@ from .docker_utils import docker_container_create, \
                           docker_container_remove, \
                           docker_container_run, \
                           docker_copy_from_container, \
-                          docker_build_image
+                          docker_build_image, \
+                          docker_list_containers
 
 from .common_utils import compute_md5, get_expanded_path, replace_bentoservice_model_server_image, get_bentoservice_profile_name
 
@@ -77,6 +78,14 @@ class SinaraModel():
 
     @staticmethod
     def containerize(args):
+
+
+        sinara_containers = docker_list_containers("sinaraml.platform")
+        for sinara_container in sinara_containers:
+            container_name = sinara_container.attrs["Names"][0][1:]
+            if container_name == 'jovyan-single-use' and args.instanceName == 'rusal_yandex_desktop':
+                args.instanceName = container_name
+
         def get_run_id_from_path(_path):
             return Path(_path).parts[-2]
         
