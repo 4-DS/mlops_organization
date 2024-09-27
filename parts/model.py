@@ -12,7 +12,8 @@ from .docker_utils import docker_container_create, \
                           docker_container_run, \
                           docker_copy_from_container, \
                           docker_build_image, \
-                          docker_list_containers
+                          docker_list_containers, \
+                          docker_image_exists
 
 from .common_utils import compute_md5, get_expanded_path, replace_bentoservice_model_server_image, get_bentoservice_profile_name
 
@@ -130,7 +131,6 @@ class SinaraModel():
 
         model_image_name = get_model_name(save_info_path)
         model_image_name_full = f"{args.dockerRegistry}/{model_image_name}:{model_image_tag}"
-
         SinaraModel.save_extra_info(bentoservice_cache_dir, model_image_name_full)
 
         bentoservice_profile = get_bentoservice_profile_name(bentoservice_cache_dir)
@@ -142,10 +142,12 @@ class SinaraModel():
 
             if bentoservice_profile == 'SinaraOnnxBentoService':
                 replace_bentoservice_model_server_image(bentoservice_dockerfile_path, "buslovaev/sinara-onnx-model-server")
-
         print(f"Building model image {model_image_name_full}")
         docker_build_image(path=str(bentoservice_cache_dir), tag=model_image_name_full, pull=True, forcerm=True, rm=True, quiet=False)
-        print(f"Model image {model_image_name_full} built successfully")
+        if docker_image_exists(model_image_name_full):
+            print(f"Model image {model_image_name_full} built successfully")
+        else:
+            print(f"Failed to build model image {model_image_name_full}")
 
     @staticmethod
     def start(args):
