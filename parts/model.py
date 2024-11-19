@@ -15,7 +15,7 @@ from .docker_utils import docker_container_create, \
                           docker_list_containers, \
                           docker_image_exists
 
-from .common_utils import compute_md5, get_expanded_path, replace_bentoservice_model_server_image, get_bentoservice_profile_name
+from .common_utils import compute_md5, get_expanded_path, replace_bentoservice_model_server_image, get_bentoservice_profile_name, remove_bentoservice_deps_install
 
 bentoservice_profiles_supported = {
     'SinaraOnnxBentoService': 'onnx',
@@ -142,6 +142,8 @@ class SinaraModel():
 
             if bentoservice_profile == 'SinaraOnnxBentoService':
                 replace_bentoservice_model_server_image(bentoservice_dockerfile_path, "buslovaev/sinara-onnx-model-server")
+                remove_bentoservice_deps_install(bentoservice_dockerfile_path)
+                
         print(f"Building model image {model_image_name_full}")
         docker_build_image(path=str(bentoservice_cache_dir), tag=model_image_name_full, pull=True, forcerm=True, rm=True, quiet=False)
         if docker_image_exists(model_image_name_full):
