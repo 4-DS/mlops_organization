@@ -46,6 +46,15 @@ def replace_bentoservice_model_server_image(dockerfile_path, model_server_image)
         docker_file.writelines(dockerfile_content)
         docker_file.truncate()
 
+def remove_bentoservice_deps_install(dockerfile_path):
+    strs_to_remove = ["RUN ./bentoml-init.sh restore_conda_env\n", "RUN ./bentoml-init.sh install_pip_packages\n"]
+    with open(dockerfile_path, 'r+') as docker_file:
+        dockerfile_content = docker_file.readlines()
+        dockerfile_content[:] = [x for x in dockerfile_content if x not in strs_to_remove]
+        docker_file.seek(0)
+        docker_file.writelines(dockerfile_content)
+        docker_file.truncate()
+
 def compute_md5(file_name):
     hash_md5 = hashlib.md5()
     with open(file_name, "rb") as f:
