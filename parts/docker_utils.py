@@ -18,7 +18,7 @@ def get_docker_client():
         except Exception as e:
             logging.debug(e)
         retries -= 1
-        logging.warning("Failed to connect to docker daemon, will try again after 30s...")
+        logging.warning("Failed to connect to docker, will try again after 30s...\nPlease ensure that docker is running.")
         sleep(30)
     raise Exception(f"Cannot connect to docker daemon.\nCheck if Docker is installed and running")
 
