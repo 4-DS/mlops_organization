@@ -293,7 +293,8 @@ class SinaraServer():
                 "SINARA_SERVER_MEMORY_LIMIT": args.memLimit,
                 "SINARA_SERVER_CORES": int(args.cpuLimit),
                 "SINARA_ORG": org_json,
-                "SINARA_PLATFORM": str(args.platform)
+                "SINARA_PLATFORM": str(args.platform),
+                "SINARA_IMAGE_TYPE": SinaraServer.get_image_type(args)
             },
             "labels": {
                 "sinaraml.platform": str(args.platform),
@@ -680,3 +681,12 @@ class SinaraServer():
                         f"{fc.CYAN}To create it again use command{fc.RESET}: {fc.WHITE}\nsinara server create --fromConfig {sinara_removed_server[server]}{fc.RESET}")
                 except Exception as e:
                     print(f"{fc.RED}\nServer config at {sinara_removed_server[server]} cannot be read, skipping{fc.RESET}")
+                    
+    @staticmethod
+    def get_image_type(args):
+        exp_part = ''
+        if not args.serverType:
+            raise Exception('Sinara server type not set, cannot detemine image type')
+        if args.experimental:
+            exp_part = '-exp'
+        return str(args.serverType) + exp_part 

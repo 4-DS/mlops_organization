@@ -99,6 +99,14 @@ class SinaraModel():
                 model_name = model_name.split("BENTO_SERVICE=")[-1]
                 model_name = '.'.join(model_name.split(".")[0:-1])
             return model_name
+        
+        def get_image_type(save_info_path):
+            with open(save_info_path, 'r') as save_info_file:
+                lines = save_info_file.readlines()
+                for line in lines:
+                    if line.startswith("SINARA_IMAGE_TYPE="):
+                        return line.split('=')[-1]                
+            return None
 
         args_dict = vars(args)
         if not args.bentoservicePath:
@@ -129,9 +137,14 @@ class SinaraModel():
         Path(model_zip_path).unlink(missing_ok=True)
         Path(success_file_path).unlink(missing_ok=True)
 
+        image_type = get_image_type(save_info_path)
+        if not image_type:
+            if "sinaraml.serverType" in sinara_container.attrs["Labels"]:
+                image_type = sinara_container.attrs["Labels"]["sinaraml.serverType"]
         model_image_name = get_model_name(save_info_path)
         model_image_name_full = f"{args.dockerRegistry}/{model_image_name}:{model_image_tag}"
         SinaraModel.save_extra_info(bentoservice_cache_dir, model_image_name_full)
+        model_image_base_suffix = f"{image_type}-model-server"
 
         bentoservice_profile = get_bentoservice_profile_name(bentoservice_cache_dir)
         if bentoservice_profile:
@@ -141,8 +154,12 @@ class SinaraModel():
             print(f'Using bentoservice profile: {bentoservice_profile}')
 
             if bentoservice_profile == 'SinaraOnnxBentoService':
-                replace_bentoservice_model_server_image(bentoservice_dockerfile_path, "buslovaev/sinara-onnx-model-server")
+                model_image_base = f"buslovaev/sinara-onnx-{model_image_base_suffix}"
+                replace_bentoservice_model_server_image(bentoservice_dockerfile_path, model_image_base)
                 remove_bentoservice_deps_install(bentoservice_dockerfile_path)
+        
+        model_image_base = f"buslovaev/sinara-{model_image_base_suffix}"
+        replace_bentoservice_model_server_image(bentoservice_dockerfile_path, model_image_base)
                 
         print(f"Building model image {model_image_name_full}")
         docker_build_image(path=str(bentoservice_cache_dir), tag=model_image_name_full, pull=True, forcerm=True, rm=True, quiet=False)
