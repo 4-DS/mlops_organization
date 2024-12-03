@@ -95,9 +95,11 @@ class SinaraModel():
         
         def get_model_name(save_info_path):
             with open(save_info_path, 'r') as save_info_file:
-                model_name = save_info_file.read()
-                model_name = model_name.split("BENTO_SERVICE=")[-1]
-                model_name = '.'.join(model_name.split(".")[0:-1])
+                lines = save_info_file.readlines()
+                for line in lines:
+                    if line.startswith("BENTO_SERVICE="):
+                        model_name = line.split("BENTO_SERVICE=")[-1].strip()
+                        model_name = '.'.join(model_name.split(".")[0:-1]).strip()
             return model_name
         
         def get_image_type(save_info_path):
