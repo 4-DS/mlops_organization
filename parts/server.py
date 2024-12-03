@@ -446,7 +446,6 @@ class SinaraServer():
     def get_server_platform(instance):
         labels = docker_get_container_labels(instance)
         # Fallback to desktop platform for legacy servers without labels
-        print 
         if not "sinaraml.platform" in labels or not labels["sinaraml.platform"]:
             return SinaraPlatform.Desktop
         return SinaraPlatform(labels["sinaraml.platform"])
