@@ -140,7 +140,6 @@ class SinaraModel():
         Path(success_file_path).unlink(missing_ok=True)
 
         image_type = get_image_type(save_info_path)
-        input(image_type)
         if not image_type:
             if "sinaraml.serverType" in sinara_container.attrs["Labels"]:
                 image_type = sinara_container.attrs["Labels"]["sinaraml.serverType"]
@@ -162,7 +161,6 @@ class SinaraModel():
                 remove_bentoservice_deps_install(bentoservice_dockerfile_path)
         
         model_image_base = f"buslovaev/sinara-{model_image_base_suffix}"
-        input(model_image_base)
         replace_bentoservice_model_server_image(bentoservice_dockerfile_path, model_image_base)
                 
         print(f"Building model image {model_image_name_full}")
