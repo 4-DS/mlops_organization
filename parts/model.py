@@ -113,7 +113,7 @@ class SinaraModel():
         platform_image_name = SinaraModel.get_platform_image_name(save_info_path, sinara_container)
         platform_image_tag = platform_image_name.split(':')[-1]
         profile_suffix = "" if not bentoservice_profile else f"-{bentoservice_profiles_supported[bentoservice_profile]}"
-        print(f"Using profile suffix: {bentoservice_profiles_supported[bentoservice_profile]}")
+        print(f"Using profile suffix: {profile_suffix}")
         model_server_name = f"buslovaev/sinara-{platform_image_type}{profile_suffix}-model-server"        
         model_base_image_list = SinaraModel.get_image_tags_from_dockerhub(model_server_name)
         compatible_model_base_images = []
