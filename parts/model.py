@@ -152,7 +152,9 @@ class SinaraModel():
             lines = save_info_file.readlines()
             for line in lines:
                 if line.startswith("SINARA_IMAGE_TYPE="):
-                    return line.split('=')[-1].strip()
+                    image_type = line.split('=')[-1].strip()
+                    if image_type:
+                        return image_type
        
         # fallback method using container labels
         if "sinaraml.serverType" in sinara_container.attrs["Labels"]:
@@ -165,7 +167,6 @@ class SinaraModel():
             lines = save_info_file.readlines()
             for line in lines:
                 if line.startswith("SINARA_IMAGE_NAME="):
-                    input("load from file " + line.split('=')[-1].strip())
                     return line.split('=')[-1].strip()
         
         # fallback to another method if there is no image data inside bento service
