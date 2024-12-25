@@ -98,14 +98,12 @@ def ip_address_is_valid(ip_address):
 def get_public_ip():
     public_ip_service_url = "https://ipinfo.io/ip"
     result = None
-    for i in range(3):
+    for i in range(2):
         try:
+            socket
             response = urllib.request.urlopen(public_ip_service_url)
-        except (urllib.error.HTTPError, urllib.error.URLError) as e:
-            time.sleep(2)
-            continue
-        except socket.timeout as e:
-            time.sleep(2)
+        except:
+            time.sleep(1)
             continue
         else:
             with response as f:
