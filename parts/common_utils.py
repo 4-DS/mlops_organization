@@ -100,7 +100,6 @@ def get_public_ip():
     result = None
     for i in range(2):
         try:
-            socket
             response = urllib.request.urlopen(public_ip_service_url)
         except:
             time.sleep(1)
