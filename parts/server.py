@@ -451,7 +451,7 @@ class SinaraServer():
         return SinaraPlatform(labels["sinaraml.platform"])
     
     @staticmethod
-    def get_server_ip(platform):
+    def get_server_ip():
         public_ip = get_public_ip()
         if not public_ip:
             return "{{vm_public_ip}}"
@@ -479,24 +479,27 @@ class SinaraServer():
         
     @staticmethod
     def get_server_clickable_url(server_name):
+        import socket
+        hostname_loopback = "127.0.0.1"
+        hostname_local_dns = socket.getfqdn()
+        hostname_public = SinaraServer.get_server_ip()
         host_port = docker_get_port_on_host(server_name, 8888)
-        server_alive_url = f"http://127.0.0.1:{host_port}"
-
-        # Wait for server token to be available in container logs, may take some time
-        SinaraServer.wait_for_token(server_alive_url)
-
         url = SinaraServer.get_server_url(server_name)
+        protocol = SinaraServer.get_server_protocol(url)
+        server_alive_url = f"{protocol}://{hostname_local_dns}:{host_port}"
+        # Wait for server token to be available in container logs, may take some time
+        try:
+            SinaraServer.wait_for_token(server_alive_url)
+        except Exception as e:
+            if "certificate_verify_failed" not in str(e).lower():
+                raise e
         token = SinaraServer.get_server_token(url)
         token_str = f"?token={token}" if token else ""
-        protocol = SinaraServer.get_server_protocol(url)
         
-        platform = SinaraServer.get_server_platform(server_name)
-        server_ip = SinaraServer.get_server_ip(platform)
-        server_url = f"{protocol}://{server_ip}:{host_port}/{token_str}"
-
         return [
-            f"{protocol}://127.0.0.1:{host_port}/{token_str}",
-            f"{protocol}://{server_ip}:{host_port}/{token_str}"]
+            f"{protocol}://{hostname_loopback}:{host_port}/{token_str}",
+            f"{protocol}://{hostname_local_dns}:{host_port}/{token_str}",
+            f"{protocol}://{hostname_public}:{host_port}/{token_str}"]
 
     @staticmethod
     def start(args):
