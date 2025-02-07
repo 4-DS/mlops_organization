@@ -531,7 +531,7 @@ class SinaraServer():
         docker_container_exec(container_name, "pip install sinaraml_jupyter -U")
 
         docker_container_exec(container_name, "pip install /home/sinarian/sinaraml_jupyter_host_ext-0.1.0-py3-none-any.whl")
-        docker_container_exec(container_name, "python /home/sinarian/check_sinara.py")
+        #docker_container_exec(container_name, "python /home/sinarian/check_sinara.py")
         # docker_copy_from_container(container_name, "/tmp/sinara_check.txt", "/tmp")
         # report_outdated_sinara_lib('/tmp/sinara_check.txt')
         # restart container to activate and enable extension
