@@ -21,7 +21,8 @@ from .docker_utils import ensure_docker_volume, \
                           docker_get_container_labels, \
                           docker_get_latest_image_version, \
                           docker_get_container_mounts, \
-                          docker_list_containers
+                          docker_list_containers, \
+                          docker_copy_to_container
 from .common_utils import get_public_ip, \
                           get_expanded_path, \
                           get_system_cpu_count, \
@@ -518,20 +519,33 @@ class SinaraServer():
             return
         
         print(f'Starting sinara server {args.instanceName}...')
+
+        curr_dir = os.path.dirname(os.path.realpath(__file__))
+        docker_copy_to_container(args.instanceName, Path(curr_dir) / 'assets/sinaraml_jupyter_host_ext-0.1.0-py3-none-any.whl',
+            '/home/sinarian/')
         
-        docker_container_start(args.instanceName)
-        SinaraServer.prepare_mounted_folders(args.instanceName)
-        SinaraServer.ensure_proxy_from_host(args.instanceName)
-        docker_container_exec(args.instanceName, f"pip install sinaraml_jupyter -U")
+        container_name = args.instanceName
+        docker_container_start(container_name)
+        SinaraServer.prepare_mounted_folders(container_name)
+        SinaraServer.ensure_proxy_from_host(container_name)
+        docker_container_exec(container_name, "pip install sinaraml_jupyter -U")
+
+        docker_container_exec(container_name, "pip install /home/sinarian/sinaraml_jupyter_host_ext-0.1.0-py3-none-any.whl")
+        docker_container_exec(container_name, "python /home/sinarian/check_sinara.py")
+        # docker_copy_from_container(container_name, "/tmp/sinara_check.txt", "/tmp")
+        # report_outdated_sinara_lib('/tmp/sinara_check.txt')
+        # restart container to activate and enable extension
+        docker_container_stop(container_name)
+        docker_container_start(container_name)
         
-        platform = SinaraServer.get_server_platform(args.instanceName)
-        server_clickable_url = SinaraServer.get_server_clickable_url(args.instanceName)
+        platform = SinaraServer.get_server_platform(container_name)
+        server_clickable_url = SinaraServer.get_server_clickable_url(container_name)
         server_clickable_url = '\n'.join(server_clickable_url)
         server_hint = f"""To access the server, copy and paste one of these URLs in a browser:\n{server_clickable_url}
             If server is not accessible, find your's machine public IP address manually
             """
         
-        print(f"Sinara server {args.instanceName} started, platform: {platform}\n{server_hint}")
+        print(f"Sinara server {container_name} started, platform: {platform}\n{server_hint}")
 
     @staticmethod
     def stop(args):

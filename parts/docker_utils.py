@@ -1,6 +1,7 @@
 import docker
 from docker import errors
 import tarfile
+import io
 from pathlib import Path
 import logging
 import tqdm
@@ -115,6 +116,18 @@ def docker_container_exec(container_name, command):
     client = get_docker_client()
     container = client.containers.get(container_name)
     return container.exec_run(command, privileged=True, user='root', stream=False, demux=True)
+
+def docker_copy_to_container(container_name, src_path, dest_path):
+    stream = io.BytesIO()
+    print(src_path)
+    with tarfile.open(fileobj=stream, mode='w|') as tar, open(src_path, 'rb') as f:
+        info = tar.gettarinfo(fileobj=f)
+        info.name = Path(src_path).name
+        tar.addfile(info, f)
+
+    client = get_docker_client()
+    container = client.containers.get(container_name)
+    container.put_archive(dest_path, stream.getvalue())
 
 def docker_copy_from_container(container_name, src_path, dest_path):
     client = get_docker_client()
