@@ -448,7 +448,7 @@ class SinaraServer():
         labels = docker_get_container_labels(instance)
         # Fallback to desktop platform for legacy servers without labels
         if not "sinaraml.platform" in labels or not labels["sinaraml.platform"]:
-            return SinaraPlatform.Desktop
+            return SinaraPlatform.PersonalPublicDesktop
         return SinaraPlatform(labels["sinaraml.platform"])
     
     @staticmethod
@@ -504,7 +504,6 @@ class SinaraServer():
 
     @staticmethod
     def start(args):
-
         # check jovyan-single-use for backward compatibility
         sinara_containers = docker_list_containers("sinaraml.platform")
         for sinara_container in sinara_containers:
@@ -512,6 +511,8 @@ class SinaraServer():
             print(container_name)
             if container_name == 'jovyan-single-use' and args.instanceName == 'personal_public_desktop':
                 args.instanceName = container_name
+                break
+            elif container_name == args.instanceName:
                 break
 
         if not docker_container_exists(args.instanceName):
